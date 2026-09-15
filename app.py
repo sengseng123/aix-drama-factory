@@ -102,7 +102,9 @@ def load_config():
     return cfg
 
 def public_config():
-    return {**CONFIG, **BRAND_PORTAL}
+    result = {**CONFIG, **BRAND_PORTAL}
+    result.pop('reference_cloud_api_key', None)
+    return result
 
 def save_config(cfg):
     with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
@@ -3964,6 +3966,8 @@ def api_config():
         data = request.get_json(force=True)
         if not isinstance(data, dict):
             return jsonify({"error": "配置必须是JSON对象"}), 400
+        if any(key.startswith('reference_') for key in data):
+            return jsonify({"error": "请在视频参考页保存视觉设置"}), 400
         locked = sorted(set(data) & set(BRAND_PORTAL))
         if locked:
             return jsonify({
@@ -5299,6 +5303,8 @@ def api_project(pid):
         "id": p['id'], "title": p.get('title'), "idea": p.get('idea'),
         "input_mode": p.get('input_mode', 'story'), "manual_h3_prompt": p.get('manual_h3_prompt'),
         "timeline_segments": p.get('timeline_segments', []),
+        "reference_editor": bool(p.get('reference_creation', {}).get('editor')),
+        "reference_origin": p.get('reference_origin'),
         "scene_reference_mode": p.get('scene_reference_mode', 'auto'),
         "script": p.get('script'), "assets": assets_view,
         "shots": p.get('shots', []), "final": p.get('final'),
@@ -5396,6 +5402,9 @@ def api_confirm_assets():
     save_project(proj)
     print(f"[确认资产] {pid} 重写{rewritten}条 失败{failed}条")
     return jsonify({"ok": True, "rewritten": rewritten, "failed": failed})
+
+from reference_api import register_reference_api
+register_reference_api(sys.modules[__name__])
 
 if __name__ == '__main__':
     web_host = os.environ.get('AIX_WEB_HOST', '127.0.0.1')

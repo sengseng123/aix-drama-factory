@@ -125,6 +125,7 @@
 <main class="max-w-7xl mx-auto px-5 py-6 space-y-6">
 
   <!-- 创作面板 -->
+  <a href="/reference" class="glass rounded-xl px-5 py-4 block hover:bg-white/10 transition">🎞️ 视频参考创作 <span class="text-xs text-gray-400 ml-2">导入参考视频 · 编辑镜头节奏 · 使用自己的角色生成</span></a>
   <section class="glass rounded-2xl p-6">
     <div class="grid grid-cols-2 gap-2 max-w-md mb-4">
       <button type="button" data-main-mode="story" onclick="setMainInputMode('story')" class="main-mode-btn btn-gold py-2.5 rounded-xl text-sm transition">✨ 故事 / 剧本自动生成</button>
@@ -499,6 +500,8 @@ function selectCurrentProject(pid){
 }
 async function restoreLastProject(){
   let pid='';try{pid=localStorage.getItem(LAST_PROJECT_KEY)||'';}catch(e){}
+  const referencePid=new URLSearchParams(location.hash.slice(1)).get('reference-project');
+  if(referencePid&&/^[a-zA-Z0-9_-]{1,64}$/.test(referencePid)){pid=referencePid;history.replaceState(null,'',location.pathname);}
   if(!pid)return;
   try{if(!await openProject(pid))localStorage.removeItem(LAST_PROJECT_KEY);}catch(e){try{localStorage.removeItem(LAST_PROJECT_KEY);}catch(_err){}}
 }
@@ -1300,6 +1303,7 @@ async function openProject(pid){
   const r=await(await fetch('/api/project/'+pid)).json();
   if(!r.ok)return false;
   const p=r.project;$('proj-modal').classList.replace('flex','hidden');
+  if(p.reference_editor){location.href='/reference?pid='+encodeURIComponent(pid);return true;}
   selectCurrentProject(pid);polledAssets={};polledShots={};SHOT_DATA={};lastProductionErrorToken='';renderStages();$('pipeline-box').classList.remove('hidden');$('final-box').classList.add('hidden');$('final-video').removeAttribute('src');$('proj-title').textContent=`${p.title||'未命名'} · ${pid.slice(0,6)}`;
   currentProductionJob=p.production_job||null;renderProductionJobState(currentProductionJob,p);
   setMainInputMode(p.input_mode==='h3_prompt'?'h3_prompt':'story');
